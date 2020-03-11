@@ -55,6 +55,27 @@ function hsvToRgb(h, s, v) {
   return `rgb(${(r * 255) | 0}, ${(g * 255) | 0}, ${(b * 255) | 0})`;
 }
 
+function rgb(r, g, b) {
+  currentContext = currentStrip.ctx;
+  currentContext.fillStyle = `rgb(${(r * 255) | 0}, ${(g * 255) | 0}, ${(b * 255) | 0})`;
+
+  localPixel = (currentPixel%stripSize);
+  if(currentStrip.stripOrientation == HORIZONTAL_RL || currentStrip.stripOrientation == VERTICAL_DU){
+    localPixel = stripSize - localPixel;
+  }
+
+  x = pixelSize * localPixel;
+  y = 0;
+
+  if(currentStrip.stripOrientation == VERTICAL_UD || currentStrip.stripOrientation == VERTICAL_DU){
+    tmp = y;
+    y = x;
+    x = tmp;
+  }
+
+  currentContext.fillRect(x, y, pixelSize, pixelSize);
+}
+
 class Strip {
   constructor(stripIndex, stripOrientation) {
     const strip = document.createElement("canvas");
