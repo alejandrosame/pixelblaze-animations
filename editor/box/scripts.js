@@ -1,7 +1,7 @@
 const numStrips = 3;
 const stripSize = 150;
 const pixelCount = stripSize * numStrips;
-const pixelSize = 10
+const pixelSize = 4;
 const canvasLong = stripSize * pixelSize;
 const canvasShort = pixelSize;
 const VERTICAL_UD = 0;
@@ -11,22 +11,28 @@ const HORIZONTAL_RL = 3;
 const DELTA = 0.1;
 
 let currentPixel;
+let currentPixelIndex = pixelCount-1;
 let currentStrip;
 let stripMap = new Map();
-let stripBuildOrder = [1,0,2];
-let stripOrientations = [HORIZONTAL_LR, VERTICAL_DU, VERTICAL_UD];
+let stripOrientations = [VERTICAL_DU, HORIZONTAL_LR, VERTICAL_UD];
 
 let currentContext;
 
 function hsv(h, s, v) {
   localPixel = (currentPixel%stripSize);
+  currentContext = currentStrip.ctx;
   currentContext.fillStyle = hsvToRgb(h, s, v);
-  currentContext.fillRect(
-    pixelSize * localPixel,
-    0,
-    pixelSize,
-    pixelSize
-  );
+
+  x = pixelSize * localPixel;
+  y = 0;
+
+  if(currentStrip.stripOrientation == VERTICAL_UD || currentStrip.stripOrientation == VERTICAL_DU){
+    tmp = y;
+    y = x;
+    x = tmp;
+  }
+
+  currentContext.fillRect(x, y, pixelSize, pixelSize);
 }
 
 function hsvToRgb(h, s, v) {
@@ -46,30 +52,27 @@ function hsvToRgb(h, s, v) {
 }
 
 class Strip {
-  constructor(renderFn, stripIndex) {
+  constructor(stripIndex, stripOrientation) {
     const strip = document.createElement("canvas");
     document.body.appendChild(strip);
     strip.className = "canvas";
-    strip.setAttribute("width", canvasLong + "px");
-    strip.setAttribute("height", canvasShort + "px");
+
+    this.stripOrientation = stripOrientation;
+
+    if(this.stripOrientation == VERTICAL_UD || this.stripOrientation == VERTICAL_DU){
+      strip.setAttribute("width", canvasShort + "px");
+      strip.setAttribute("height", canvasLong + "px");
+    }else{
+      strip.setAttribute("width", canvasLong + "px");
+      strip.setAttribute("height", canvasShort + "px");
+    }
 
     this.ctx = strip.getContext("2d");
-    this.renderFn = renderFn;
-
-    this.stripOrientation = stripOrientations[stripIndex];
 
     let startPixel = stripSize*stripIndex;
     let endPixel = stripSize*stripIndex + stripSize;
     this.range = [startPixel, endPixel];
   }
-}
-
-function time(interval) {
-  return (performance.now() % (65536 * interval)) / (65536 * interval);
-}
-
-function wave(v) {
-  return (1 + Math.sin(v * Math.PI * 2)) / 2;
 }
 
 function findCurrentStrip(stripMap, index){
@@ -83,29 +86,31 @@ function findCurrentStrip(stripMap, index){
 
 function beforeRender(delta){
   with(Math){
-    hl = pixelCount / 2;
-    t = time(0.01);
-    v = 0.01 + wave(time(0.07));
+    currentPixelIndex = (currentPixelIndex+1)%pixelCount;
   }
 }
 
 function render(index){
   with(Math){
-    c1 = 1 - abs(index - hl) / hl;
-    hsv(c1 + t, 1, v);
+    if(index == currentPixelIndex){
+      hsv(0,1,1);
+    }else{
+      hsv(0,0,0);
+    }
   }
 }
 
-function update(){
+async function update(){
   beforeRender(delta);
 
   //Main rendering logic
   for (let i = 0; i < pixelCount; i++) {
     currentPixel = i;
     currentStrip = findCurrentStrip(stripMap, i);
-    currentContext = currentStrip.ctx;
+
     render(currentPixel);
 
+    //await new Promise(resolve => setTimeout(resolve, 50));
     delta += DELTA;
   }
 
@@ -115,8 +120,7 @@ function update(){
 function init() {
   // Add strips
   for (let i = 0; i < numStrips; i++) {
-    stripBuildIndex = stripBuildOrder[i];
-    s = new Strip(render, stripBuildIndex);
+    s = new Strip(i, stripOrientations[i]);
     stripMap.set(s.range, s);
   }
 
