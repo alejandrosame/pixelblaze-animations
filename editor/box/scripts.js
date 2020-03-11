@@ -19,9 +19,13 @@ let stripOrientations = [VERTICAL_DU, HORIZONTAL_LR, VERTICAL_UD];
 let currentContext;
 
 function hsv(h, s, v) {
-  localPixel = (currentPixel%stripSize);
   currentContext = currentStrip.ctx;
   currentContext.fillStyle = hsvToRgb(h, s, v);
+
+  localPixel = (currentPixel%stripSize);
+  if(currentStrip.stripOrientation == HORIZONTAL_RL || currentStrip.stripOrientation == VERTICAL_DU){
+    localPixel = stripSize - localPixel;
+  }
 
   x = pixelSize * localPixel;
   y = 0;
